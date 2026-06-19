@@ -105,14 +105,16 @@ resource provisionerRole 'Microsoft.Authorization/roleDefinitions@2022-04-01' = 
   }
 }
 
-// Assign the provisioner role to the Function app identity, scoped to the tenants RG.
-resource provisionerAssignment 'Microsoft.Authorization/roleAssignments@2022-04-01' = {
+// Assign the provisioner role to the Function app identity, scoped to the
+// tenants RG. Done via a module so the assignment deploys at RG scope and
+// the principalId (a module output) is resolved as the child deployment's
+// parameter rather than at the start of this subscription-scope template.
+module provisionerAssignment 'modules/tenant-rbac.bicep' = {
+  name: 'tenant-provisioner-rbac'
   scope: tenantsRg
-  name: guid(tenantsRg.id, platform.outputs.functionAppPrincipalId, provisionerRole.id)
-  properties: {
-    roleDefinitionId: provisionerRole.id
+  params: {
     principalId: platform.outputs.functionAppPrincipalId
-    principalType: 'ServicePrincipal'
+    roleDefinitionId: provisionerRole.id
   }
 }
 
